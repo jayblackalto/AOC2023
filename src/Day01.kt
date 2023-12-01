@@ -1,8 +1,8 @@
 fun main() {
     fun part1(input: List<String>): Int {
-        return input.sumOf {
-            val first = it.first { it.isDigit() }
-            val last = it.last { it.isDigit() }
+        return input.sumOf { line ->
+            val first = line.first { it.isDigit() }
+            val last = line.last { it.isDigit() }
             "$first$last".toInt()
         }
     }
@@ -10,22 +10,22 @@ fun main() {
     fun part2(input: List<String>): Int {
         val words = listOf("one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
 
-        tailrec fun String.chompStart(): Pair<Char, String> {
-            if (first().isDigit()) return first() to this
+        tailrec fun String.chompStart(): Char {
+            if (first().isDigit()) return first()
             val wordIndex = words.indexOfFirst { this.startsWith(it) }
-            if (wordIndex > -1) return ('1' + wordIndex) to this
+            if (wordIndex > -1) return ('1' + wordIndex)
             return drop(1).chompStart()
         }
-        tailrec fun String.chompEnd(): Pair<Char, String> {
-            if (last().isDigit()) return last() to this
+
+        tailrec fun String.chompEnd(): Char {
+            if (last().isDigit()) return last()
             val wordIndex = words.indexOfLast { this.endsWith(it) }
-            if (wordIndex > -1) return ('1' + wordIndex) to this
+            if (wordIndex > -1) return ('1' + wordIndex)
             return dropLast(1).chompEnd()
         }
 
         return input.sumOf { line ->
-            val (first, chomped1) = line.chompStart()
-            val (last, _) = chomped1.chompEnd()
+            val (first, last) = line.chompStart() to line.chompEnd()
             "$first$last".toInt()
         }
     }
