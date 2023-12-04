@@ -1,3 +1,8 @@
+package day1
+
+import println
+import readInput
+
 fun main() {
     fun part1(input: List<String>): Int {
         return input.sumOf { line ->
@@ -31,13 +36,13 @@ fun main() {
     }
 
     // test if implementation meets criteria from the description, like:
-    val testInput = readInput("Day01_test")
+    val testInput = readInput("day1/example1")
     check(part1(testInput) == 142) { "${part1(testInput)} == 142" }
 
-    val testInput2 = readInput("Day01_test2")
+    val testInput2 = readInput("day1/example2")
     check(part2(testInput2) == 281) { "${part2(testInput2)} == 281" }
 
-    val input = readInput("Day01")
+    val input = readInput("day1/test")
     part1(input).println()
     part2(input).println()
 }
