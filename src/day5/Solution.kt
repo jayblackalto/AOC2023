@@ -7,14 +7,20 @@ data class AlmanacMappingRange(val destination: Long, val source: Long, val leng
     val sourceRange: LongRange = (source until source + length)
 }
 
+data class MappingKey(val from: String, val to: String)
+
 data class Almanac(
     val seeds: List<Long>,
-    val mappings: Map<String, List<AlmanacMappingRange>>,
+    val mappings: Map<MappingKey, List<AlmanacMappingRange>>,
 ) {
-    val seedByRange =
-        seeds.chunked(2).flatMap { (s, l) ->
-            (s until s + l).toList()
-        }
+    val seedByRange = seeds.chunked(2).map { (s, l) -> (s until s + l) }
+
+    fun invert() = Almanac(
+        seeds = seeds,
+        mappings = mappings.map { (name, ranges) ->
+            MappingKey(name.to, name.from) to ranges.map { (d, s, l) -> AlmanacMappingRange(s, d, l) }
+        }.toMap(),
+    )
 }
 
 data class AlmanacCategory(val name: String, val values: List<Long>)
@@ -22,7 +28,7 @@ data class AlmanacCategory(val name: String, val values: List<Long>)
 fun main() {
     fun List<String>.parseAlmanac(): Almanac {
         val seeds = mutableListOf<Long>()
-        val mappings = mutableMapOf<String, MutableList<AlmanacMappingRange>>()
+        val mappings = mutableMapOf<MappingKey, MutableList<AlmanacMappingRange>>()
         var currentName: String? = null
 
         forEach { line ->
@@ -35,8 +41,8 @@ fun main() {
                 if (name == "seeds") {
                     seeds += values
                 } else {
-                    val mappingName = name!!.removeSuffix(" map")
-                    val mappingsForName = mappings.getOrPut(mappingName, ::mutableListOf)
+                    val (from, to) = name!!.removeSuffix(" map").split("-to-")
+                    val mappingsForName = mappings.getOrPut(MappingKey(from, to), ::mutableListOf)
                     mappingsForName += values.chunked(3).map { (d, s, l) -> AlmanacMappingRange(d, s, l) }
                 }
             }
@@ -52,11 +58,10 @@ fun main() {
     }
 
     fun Almanac.resolve(current: AlmanacCategory): AlmanacCategory? {
-        val mappingEntry = mappings.entries.find { it.key.startsWith("${current.name}-to-") }
+        val mappingEntry = mappings.entries.find { it.key.from == current.name }
             ?: return null
-        val (_, target) = mappingEntry.key.split("-to-")
         val values = current.values.map { mappingEntry.value.resolve(it) }
-        return AlmanacCategory(target, values)
+        return AlmanacCategory(mappingEntry.key.to, values)
     }
 
     fun part1(input: List<String>): Long {
@@ -67,10 +72,16 @@ fun main() {
     }
 
     fun part2(input: List<String>): Long {
-        val almanac = input.parseAlmanac()
-        val seed = AlmanacCategory("seed", almanac.seedByRange)
-        val resolvedCategories = generateSequence(seed) { almanac.resolve(it) }.associateBy { it.name }
-        return resolvedCategories["location"]?.values?.min() ?: 0L
+        val almanac = input.parseAlmanac().invert()
+        for (i in 0..Long.MAX_VALUE) {
+            val range = listOf(i)
+            val resolvedCategories = generateSequence(AlmanacCategory("location", range.toList())) { almanac.resolve(it) }.associateBy { it.name }
+            val seed = resolvedCategories["seed"]?.values?.firstOrNull()
+            if (almanac.seedByRange.any { seed in it }) {
+                return i
+            }
+        }
+        throw IllegalStateException("No solution found")
     }
 
 //    val testInput = readInput("day5/example1")
